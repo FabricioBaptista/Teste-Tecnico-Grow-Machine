@@ -1,0 +1,59 @@
+SELECT 'Total de Vendas por Canal' AS Categoria, c.Canal_Aquisicao AS Detalhe, SUM(v.Valor_Total) AS Valor
+FROM Vendas v
+JOIN Clientes c ON v.Cliente_ID = c.Cliente_ID
+WHERE v.Data_Venda >= DATEADD(QUARTER, -1, GETDATE())
+GROUP BY c.Canal_Aquisicao
+
+UNION
+
+SELECT 'Top Produtos' AS Categoria, p.Produto_Nome AS Detalhe, SUM(v.Quantidade) AS Valor
+FROM Vendas v
+JOIN Produtos p ON v.Produto_ID = p.Produto_ID
+GROUP BY p.Produto_Nome
+ORDER BY Valor DESC
+
+UNION
+
+SELECT 'Ticket Médio por Segmento' AS Categoria, c.Segmento AS Detalhe, AVG(v.Valor_Total) AS Valor
+FROM Vendas v
+JOIN Clientes c ON v.Cliente_ID = c.Cliente_ID
+GROUP BY c.Segmento
+
+UNION
+
+SELECT 'Padrão de Vendas por Mês' AS Categoria, CAST(MONTH(v.Data_Venda) AS VARCHAR) AS Detalhe, SUM(v.Valor_Total) AS Valor
+FROM Vendas v
+GROUP BY MONTH(v.Data_Venda)
+
+UNION
+
+SELECT 'Eficiência das Campanhas' AS Categoria, cm.Campanha_Nome AS Detalhe, 
+       (SUM(CASE WHEN im.Tipo_Interacao = 'Conversão' THEN 1 ELSE 0 END) * 1.0 / COUNT(im.Interacao_ID)) * 100 AS Valor
+FROM Campanhas_Marketing cm
+JOIN Interacoes_Marketing im ON cm.Campanha_ID = im.Campanha_ID
+GROUP BY cm.Campanha_Nome
+
+UNION
+
+SELECT 'Canal de Marketing Mais Engajado' AS Categoria, im.Canal AS Detalhe, COUNT(im.Interacao_ID) AS Valor
+FROM Interacoes_Marketing im
+GROUP BY im.Canal
+
+UNION
+
+SELECT 'Relação Campanha e Vendas' AS Categoria, cm.Campanha_Nome + ' - ' + p.Produto_Nome AS Detalhe, SUM(v.Quantidade) AS Valor
+FROM Campanhas_Marketing cm
+JOIN Interacoes_Marketing im ON cm.Campanha_ID = im.Campanha_ID
+JOIN Vendas v ON v.Data_Venda >= cm.Data_Inicio AND v.Data_Venda <= DATEADD(DAY, 30, cm.Data_Inicio)
+JOIN Produtos p ON v.Produto_ID = p.Produto_ID
+GROUP BY cm.Campanha_Nome, p.Produto_Nome
+
+UNION
+
+SELECT 'Análise Regional' AS Categoria, c.Cidade AS Detalhe, SUM(v.Valor_Total) AS Valor
+FROM Clientes c
+JOIN Vendas v ON c.Cliente_ID = v.Cliente_ID
+JOIN Interacoes_Marketing im ON c.Cliente_ID = im.Cliente_ID
+GROUP BY c.Cidade
+ORDER BY Categoria, Valor DESC;
+
